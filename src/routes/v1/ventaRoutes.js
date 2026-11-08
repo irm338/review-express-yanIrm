@@ -1,11 +1,10 @@
+
 const express = require('express');
-const ventas = require('../../controllers/ventaController');
-const { requerirAutenticacion } = require('../../middleware/authMiddleware');
-
 const router = express.Router();
+const ventaController = require('../../controllers/ventaController');
+const { verificarAutenticacion } = require('../../middleware/authMiddleware');
 
-router.use(requerirAutenticacion);
-router.get('/', ventas.listarVentas);
-router.post('/', ventas.crearVenta);
+router.post('/', verificarAutenticacion, ventaController.realizarVenta);
+router.get('/historial/:usuarioId', verificarAutenticacion, ventaController.verHistorialCompras);
 
 module.exports = router;

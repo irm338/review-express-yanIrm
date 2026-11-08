@@ -1,12 +1,11 @@
+
 const express = require('express');
-const prestamos = require('../../controllers/prestamoController');
-const { requerirAutenticacion, requerirAdmin } = require('../../middleware/authMiddleware');
-
 const router = express.Router();
+const prestamoController = require('../../controllers/prestamoController');
+const { verificarAutenticacion } = require('../../middleware/authMiddleware');
 
-router.use(requerirAutenticacion);
-router.get('/', prestamos.listarPrestamos);
-router.post('/', prestamos.crearPrestamo);
-router.patch('/:id/devolver', requerirAdmin, prestamos.devolverPrestamo);
+router.post('/', verificarAutenticacion, prestamoController.prestarLibro);
+router.get('/historial/:usuarioId', verificarAutenticacion, prestamoController.verHistorialPrestamos);
+
 
 module.exports = router;

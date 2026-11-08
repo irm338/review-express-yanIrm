@@ -1,26 +1,20 @@
-class LibroDTO {
-    constructor(datos) {
-        datos = datos || {};
-        this.titulo = typeof datos.titulo === 'string' ? datos.titulo.trim() : '';
-        this.autor = typeof datos.autor === 'string' ? datos.autor.trim() : '';
-        this.categoria = typeof datos.categoria === 'string' ? datos.categoria.trim() : '';
-        this.precio = Number(datos.precio);
-        this.stock = Number(datos.stock);
+
+const validarLibroDto = (req, res, next) => {
+    const { titulo, autor, stock, precio } = req.body;
+
+    if (!titulo || !autor || stock === undefined || precio === undefined) {
+        return res.status(400).json({ 
+            error: 'Faltan datos obligatorios: título, autor, stock y precio son requeridos.' 
+        });
     }
 
-    validar() {
-        if (!this.titulo || !this.autor || !Number.isFinite(this.precio) ||
-            !Number.isInteger(this.stock)) {
-            return 'Título, autor, precio y stock son obligatorios y deben tener un formato válido.';
-        }
-        if (this.precio < 0) {
-            return 'El precio no puede ser negativo.';
-        }
-        if (this.stock < 0) {
-            return 'El stock no puede ser negativo.';
-        }
-        return null;
+    if (typeof stock !== 'number' || typeof precio !== 'number') {
+        return res.status(400).json({ 
+            error: 'El stock y el precio deben ser valores numéricos.' 
+        });
     }
-}
 
-module.exports = LibroDTO;
+    next();
+};
+
+module.exports = { validarLibroDto };

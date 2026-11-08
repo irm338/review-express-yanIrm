@@ -1,12 +1,12 @@
+
 const express = require('express');
-const libros = require('../../controllers/libroController');
-const { requerirAutenticacion, requerirAdmin } = require('../../middleware/authMiddleware');
+const enrutador = express.Router();
+const libroController = require('../../controllers/libroController');
+const { validarLibroDto } = require('../../dtos/libretoDto');
 
-const router = express.Router();
+enrutador.post('/', validarLibroDto, libroController.crearLibro);
+enrutador.get('/', libroController.listarLibros);
+enrutador.put('/:id', validarLibroDto, libroController.actualizarLibro);
+enrutador.delete('/:id', libroController.eliminarLibro);
 
-router.get('/', libros.listarLibros);
-router.post('/', requerirAutenticacion, requerirAdmin, libros.crearLibro);
-router.put('/:id', requerirAutenticacion, requerirAdmin, libros.editarLibro);
-router.delete('/:id', requerirAutenticacion, requerirAdmin, libros.eliminarLibro);
-
-module.exports = router;
+module.exports = enrutador;

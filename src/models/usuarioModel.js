@@ -1,39 +1,35 @@
-const db = require('../config/db');
 
-class UsuarioModel {
-    // Buscar un usuario por su correo electrónico
-    static async buscarPorEmail(email) {
-        const [filas] = await db.query('SELECT * FROM usuarios WHERE email = ?', [email]);
-        return filas[0];
+const conexion = require('../config/db');
+
+const UsuarioModelo = {
+    crear: (datos, callback) => {
+        const consulta = 'INSERT INTO usuarios (identificacion, nombre, telefono, direccion, email, contrasena, rol) VALUES (?, ?, ?, ?, ?, ?, ?)';
+        conexion.query(consulta, [
+            datos.identificacion, 
+            datos.nombre, 
+            datos.telefono, 
+            datos.direccion, 
+            datos.email, 
+            datos.contrasena, 
+            datos.rol || 'cliente'
+        ], callback);
+    },
+
+    buscarPorEmail: (email, callback) => {
+        const consulta = 'SELECT * FROM usuarios WHERE email = ?';
+        conexion.query(consulta, [email], callback);
+    },
+
+    buscarPorId: (id, callback) => {
+        const consulta = 'SELECT id, identificacion, nombre, telefono, direccion, email, rol FROM usuarios WHERE id = ?';
+        conexion.query(consulta, [id], callback);
+    },
+
+    actualizarPerfil: (id, datos, callback) => {
+        // Nota: La identificación no se altera por seguridad de la lógica de negocio
+        const consulta = 'UPDATE usuarios SET nombre = ?, telefono = ?, direccion = ?, email = ? WHERE id = ?';
+        conexion.query(consulta, [datos.nombre, datos.telefono, datos.direccion, datos.email, id], callback);
     }
+};
 
-    // Buscar un usuario por su ID único
-    static async buscarPorId(id) {
-        const [filas] = await db.query('SELECT * FROM usuarios WHERE id = ?', [id]);
-        return filas[0];
-    }
-
-    // Registrar un nuevo usuario en la base de datos
-    static async crear(datos) {
-        const { identificacion, nombre, telefono, direccion, email, password } = datos;
-        const consulta = `
-            INSERT INTO usuarios (identificacion, nombre, telefono, direccion, email, password) 
-            VALUES (?, ?, ?, ?, ?, ?)
-        `;
-        const [resultado] = await db.query(consulta, [identificacion, nombre, telefono, direccion, email, password]);
-        return resultado.insertId;
-    }
-
-    // Actualizar el perfil del usuario (Nota: La identificación NO se modifica por reglas del negocio)
-    static async actualizarPerfil(id, datos) {
-        const { nombre, telefono, direccion, email } = datos;
-        const consulta = `
-            UPDATE usuarios 
-            SET nombre = ?, telefono = ?, direccion = ?, email = ? 
-            WHERE id = ?
-        `;
-        await db.query(consulta, [nombre, telefono, direccion, email, id]);
-    }
-}
-
-module.exports = UsuarioModel;
+module.exports = UsuarioModelo;
