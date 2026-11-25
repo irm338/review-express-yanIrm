@@ -1,18 +1,14 @@
+const rateLimit = require('express-rate-limit');
 
-const validarDto = (esquemaValidacion) => {
-    return (req, res, next) => {
-        const { error } = esquemaValidacion.validate(req.body); // O validación manual básica en español
-        
-        // Ejemplo de validación básica estructurada en español:
-        if (error) {
-            return res.status(400).json({ 
-                error: 'Error de validación en los datos enviados', 
-                detalle: error.details ? error.details[0].message : error.message 
-            });
-        }
-        
-        next();
-    };
-};
+// Limita las solicitudes por dirección IP para reducir abusos y fuerza bruta.
+const limitarPeticiones = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        error: 'Se realizaron demasiadas solicitudes desde esta dirección. Inténtelo de nuevo en 15 minutos.'
+    }
+});
 
-module.exports = { validarDto };
+module.exports = { limitarPeticiones };

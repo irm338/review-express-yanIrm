@@ -1,26 +1,36 @@
-
 const db = require('../config/db');
 
-exports.prestarLibro = (req, res) => {
+// Registra préstamos con consultas parametrizadas para evitar inyección SQL.
+exports.prestarLibro = async (req, res) => {
     const { usuario_id, libro_id, fecha_prestamo, fecha_tentativa_devolucion } = req.body;
-    const consulta = 'INSERT INTO prestamos (usuario_id, libro_id, fecha_prestamo, fecha_tentativa_devolucion, estado) VALUES (?, ?, ?, ?, ?)';
-    
-    db.query(consulta, [usuario_id, libro_id, fecha_prestamo, fecha_tentativa_devolucion, 'Prestado'], (error, resultado) => {
-        if (error) return res.status(500).json({ error: 'Error al registrar el préstamo' });
-        res.status(201).json({ mensaje: 'Préstamo registrado con éxito', id: resultado.insertId });
-    });
+
+    try {
+        const [resultado] = await db.promise().execute(
+            'INSERT INTO prestamos (usuario_id, libro_id, fecha_prestamo, fecha_tentativa_devolucion, estado) VALUES (?, ?, ?, ?, ?)',
+            [usuario_id, libro_id, fecha_prestamo, fecha_tentativa_devolucion, 'Pendiente']
+        );
+        return res.status(201).json({ mensaje: 'Préstamo registrado correctamente.', id: resultado.insertId });
+    } catch (error) {
+        console.error('Error al registrar el préstamo:', error);
+        return res.status(500).json({ error: 'No fue posible registrar el préstamo.' });
+    }
 };
 
-exports.verHistorialPrestamos = (req, res) => {
-    const { usuarioId } = req.params;
+exports.verHistorialPrestamos = async (req, res) => {
     const consulta = `
-        SELECT p.id, l.titulo, p.fecha_prestamo, p.fecha_tentativa_devolucion, p.fecha_devolucion, p.estado 
-        FROM prestamos p 
-        JOIN libros l ON p.libro_id = l.id 
+        SELECT p.id, l.titulo, p.fecha_prestamo, p.fecha_tentativa_devolucion,
+               p.fecha_devolucion, p.estado
+        FROM prestamos p
+        INNER JOIN libros l ON p.libro_id = l.id
         WHERE p.usuario_id = ?
+        ORDER BY p.fecha_prestamo DESC
     `;
-    db.query(consulta, [usuarioId], (error, resultados) => {
-        if (error) return res.status(500).json({ error: 'Error al obtener el historial de préstamos' });
-        res.json(resultados);
-    });
+
+    try {
+        const [prestamos] = await db.promise().execute(consulta, [req.params.usuarioId]);
+        return res.json(prestamos);
+    } catch (error) {
+        console.error('Error al consultar el historial de préstamos:', error);
+        return res.status(500).json({ error: 'No fue posible obtener el historial de préstamos.' });
+    }
 };

@@ -2,9 +2,10 @@
 const express = require('express');
 const router = express.Router();
 const ventaController = require('../../controllers/ventaController');
-const { verificarAutenticacion } = require('../../middleware/authMiddleware');
+const { validarVentaDto } = require('../../dtos/ventaDto');
+const { verificarAutenticacion, verificarAccesoUsuario } = require('../../middleware/authMiddleware');
 
-router.post('/', verificarAutenticacion, ventaController.realizarVenta);
-router.get('/historial/:usuarioId', verificarAutenticacion, ventaController.verHistorialCompras);
+router.post('/', verificarAutenticacion, verificarAccesoUsuario, validarVentaDto, ventaController.realizarVenta);
+router.get('/historial/:usuarioId', verificarAutenticacion, verificarAccesoUsuario, ventaController.verHistorialCompras);
 
 module.exports = router;

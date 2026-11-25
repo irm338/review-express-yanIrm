@@ -1,8 +1,9 @@
 
+-- Crea y selecciona la base de datos utilizada por la API.
 CREATE DATABASE IF NOT EXISTS sistema_biblioteca;
 USE sistema_biblioteca;
 
--- Tabla de Usuarios y Clientes
+-- Almacena las cuentas de clientes y administradores.
 CREATE TABLE IF NOT EXISTS usuarios (
     id INT AUTO_INCREMENT PRIMARY KEY,
     identificacion VARCHAR(50) NOT NULL UNIQUE,
@@ -15,7 +16,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla de Libros e Inventario
+-- Registra el catálogo de libros, su inventario y precio.
 CREATE TABLE IF NOT EXISTS libros (
     id INT AUTO_INCREMENT PRIMARY KEY,
     titulo VARCHAR(150) NOT NULL,
@@ -25,7 +26,7 @@ CREATE TABLE IF NOT EXISTS libros (
     precio DECIMAL(10,2) NOT NULL
 );
 
--- Tabla de Préstamos
+-- Relaciona cada préstamo con el usuario y el libro correspondientes.
 CREATE TABLE IF NOT EXISTS prestamos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     usuario_id INT NOT NULL,
@@ -38,7 +39,7 @@ CREATE TABLE IF NOT EXISTS prestamos (
     FOREIGN KEY (libro_id) REFERENCES libros(id)
 );
 
--- Tabla de Ventas de Libros
+-- Guarda la cabecera de cada venta.
 CREATE TABLE IF NOT EXISTS ventas (
     id INT AUTO_INCREMENT PRIMARY KEY,
     usuario_id INT NOT NULL,
@@ -47,7 +48,7 @@ CREATE TABLE IF NOT EXISTS ventas (
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 );
 
--- Detalle de Venta (para 1 o varios libros)
+-- Guarda las líneas de detalle asociadas a una venta.
 CREATE TABLE IF NOT EXISTS detalle_ventas (
     id INT AUTO_INCREMENT PRIMARY KEY,
     venta_id INT NOT NULL,

@@ -1,38 +1,82 @@
-
 const db = require('../config/db');
 
-exports.crearLibro = (req, res) => {
+// Ejecuta consultas del catálogo y devuelve respuestas JSON en español.
+exports.crearLibro = async (req, res) => {
     const { titulo, autor, categoria, stock, precio } = req.body;
-    const consulta = 'INSERT INTO libros (titulo, autor, categoria, stock, precio) VALUES (?, ?, ?, ?, ?)';
-    
-    db.query(consulta, [titulo, autor, categoria, stock, precio], (error, resultado) => {
-        if (error) return res.status(500).json({ error: 'Error al crear el libro' });
-        res.status(201).json({ mensaje: 'Libro creado con éxito', id: resultado.insertId });
-    });
+
+    try {
+        const [resultado] = await db.promise().execute(
+            'INSERT INTO libros (titulo, autor, categoria, stock, precio) VALUES (?, ?, ?, ?, ?)',
+            [titulo, autor, categoria || null, stock, precio]
+        );
+        return res.status(201).json({ mensaje: 'Libro creado correctamente.', id: resultado.insertId });
+    } catch (error) {
+        console.error('Error al crear el libro:', error);
+        return res.status(500).json({ error: 'No fue posible crear el libro.' });
+    }
 };
 
-exports.listarLibros = (req, res) => {
-    db.query('SELECT * FROM libros', (error, resultados) => {
-        if (error) return res.status(500).json({ error: 'Error al listar los libros' });
-        res.json(resultados);
-    });
+exports.listarLibros = async (req, res) => {
+    try {
+        const [libros] = await db.promise().execute(
+            'SELECT id, titulo, autor, categoria, stock, precio FROM libros ORDER BY id'
+        );
+        return res.json(libros);
+    } catch (error) {
+        console.error('Error al listar los libros:', error);
+        return res.status(500).json({ error: 'No fue posible obtener los libros.' });
+    }
 };
 
-exports.actualizarLibro = (req, res) => {
+exports.buscarLibro = async (req, res) => {
+    const titulo = typeof req.query.titulo === 'string' ? req.query.titulo.trim() : '';
+    if (!titulo) {
+        return res.status(400).json({ error: 'Debe indicar el título que desea buscar.' });
+    }
+
+    try {
+        const [libros] = await db.promise().execute(
+            'SELECT id, titulo, autor, categoria, stock, precio FROM libros WHERE titulo LIKE ? ORDER BY titulo',
+            [`%${titulo}%`]
+        );
+        return res.json(libros);
+    } catch (error) {
+        console.error('Error al buscar libros:', error);
+        return res.status(500).json({ error: 'No fue posible buscar los libros.' });
+    }
+};
+
+exports.actualizarLibro = async (req, res) => {
     const { id } = req.params;
     const { titulo, autor, categoria, stock, precio } = req.body;
-    const consulta = 'UPDATE libros SET titulo = ?, autor = ?, categoria = ?, stock = ?, precio = ? WHERE id = ?';
-    
-    db.query(consulta, [titulo, autor, categoria, stock, precio, id], (error) => {
-        if (error) return res.status(500).json({ error: 'Error al actualizar el libro' });
-        res.json({ mensaje: 'Libro actualizado correctamente' });
-    });
+
+    try {
+        const [resultado] = await db.promise().execute(
+            'UPDATE libros SET titulo = ?, autor = ?, categoria = ?, stock = ?, precio = ? WHERE id = ?',
+            [titulo, autor, categoria || null, stock, precio, id]
+        );
+        if (resultado.affectedRows === 0) {
+            return res.status(404).json({ error: 'No se encontró el libro solicitado.' });
+        }
+        return res.json({ mensaje: 'Libro actualizado correctamente.' });
+    } catch (error) {
+        console.error('Error al actualizar el libro:', error);
+        return res.status(500).json({ error: 'No fue posible actualizar el libro.' });
+    }
 };
 
-exports.eliminarLibro = (req, res) => {
-    const { id } = req.params;
-    db.query('DELETE FROM libros WHERE id = ?', [id], (error) => {
-        if (error) return res.status(500).json({ error: 'Error al eliminar el libro' });
-        res.json({ mensaje: 'Libro eliminado correctamente' });
-    });
+exports.eliminarLibro = async (req, res) => {
+    try {
+        const [resultado] = await db.promise().execute(
+            'DELETE FROM libros WHERE id = ?',
+            [req.params.id]
+        );
+        if (resultado.affectedRows === 0) {
+            return res.status(404).json({ error: 'No se encontró el libro solicitado.' });
+        }
+        return res.json({ mensaje: 'Libro eliminado correctamente.' });
+    } catch (error) {
+        console.error('Error al eliminar el libro:', error);
+        return res.status(500).json({ error: 'No fue posible eliminar el libro.' });
+    }
 };

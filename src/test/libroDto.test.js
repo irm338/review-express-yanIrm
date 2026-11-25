@@ -32,3 +32,19 @@ test('rechaza datos incompletos y cantidades negativas o fraccionarias', () => {
         stock: 1.5
     }).validar(), /formato válido/);
 });
+
+test('rechaza importes no finitos y existencias expresadas como texto vacío', () => {
+    assert.match(new LibroDTO({
+        titulo: 'Libro',
+        autor: 'Autora',
+        precio: Infinity,
+        stock: 1
+    }).validar(), /precio debe ser un número válido/);
+
+    assert.match(new LibroDTO({
+        titulo: 'Libro',
+        autor: 'Autora',
+        precio: 10,
+        stock: ''
+    }).validar(), /obligatorios/);
+});

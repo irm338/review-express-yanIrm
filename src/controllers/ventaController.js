@@ -1,37 +1,62 @@
-
 const db = require('../config/db');
 
-exports.realizarVenta = (req, res) => {
-    const { usuario_id, total, libros } = req.body; // libros = [{ libro_id, cantidad, subtotal }]
-    
-    const consultaVenta = 'INSERT INTO ventas (usuario_id, total) VALUES (?, ?)';
-    db.query(consultaVenta, [usuario_id, total], (error, resultadoVenta) => {
-        if (error) return res.status(500).json({ error: 'Error al registrar la venta' });
-        
-        const ventaId = resultadoVenta.insertId;
+// Registra la venta y su detalle en una sola transacción.
+exports.realizarVenta = async (req, res) => {
+    const { usuario_id, total, libros } = req.body;
+    let conexion;
+    let transaccionIniciada = false;
 
-        libros.forEach(item => {
-            const consultaDetalle = 'INSERT INTO detalle_ventas (venta_id, libro_id, cantidad, subtotal) VALUES (?, ?, ?, ?)';
-            db.query(consultaDetalle, [ventaId, item.libro_id, item.cantidad, item.subtotal], (err) => {
-                if (err) console.error('Error al registrar detalle de venta:', err);
-            });
+    try {
+        conexion = await db.promise().getConnection();
+        await conexion.beginTransaction();
+        transaccionIniciada = true;
+        const [venta] = await conexion.execute(
+            'INSERT INTO ventas (usuario_id, total) VALUES (?, ?)',
+            [usuario_id, total]
+        );
+
+        for (const libro of libros) {
+            await conexion.execute(
+                'INSERT INTO detalle_ventas (venta_id, libro_id, cantidad, subtotal) VALUES (?, ?, ?, ?)',
+                [venta.insertId, libro.libro_id, libro.cantidad, libro.subtotal]
+            );
+        }
+
+        await conexion.commit();
+        transaccionIniciada = false;
+        return res.status(201).json({
+            mensaje: 'Venta realizada correctamente.',
+            venta_id: venta.insertId
         });
-
-        res.status(201).json({ mensaje: 'Venta realizada con éxito', venta_id: ventaId });
-    });
+    } catch (error) {
+        if (conexion && transaccionIniciada) {
+            await conexion.rollback();
+        }
+        console.error('Error al registrar la venta:', error);
+        return res.status(500).json({ error: 'No fue posible registrar la venta.' });
+    } finally {
+        if (conexion) {
+            conexion.release();
+        }
+    }
 };
 
-exports.verHistorialCompras = (req, res) => {
-    const { usuarioId } = req.params;
+exports.verHistorialCompras = async (req, res) => {
     const consulta = `
-        SELECT v.id AS venta_id, v.fecha_venta, v.total, l.titulo, dv.cantidad, dv.subtotal
+        SELECT v.id AS venta_id, v.fecha_venta, v.total, l.titulo,
+               dv.cantidad, dv.subtotal
         FROM ventas v
-        JOIN detalle_ventas dv ON v.id = dv.venta_id
-        JOIN libros l ON dv.libro_id = l.id
+        INNER JOIN detalle_ventas dv ON v.id = dv.venta_id
+        INNER JOIN libros l ON dv.libro_id = l.id
         WHERE v.usuario_id = ?
+        ORDER BY v.fecha_venta DESC
     `;
-    db.query(consulta, [usuarioId], (error, resultados) => {
-        if (error) return res.status(500).json({ error: 'Error al obtener el historial de compras' });
-        res.json(resultados);
-    });
+
+    try {
+        const [ventas] = await db.promise().execute(consulta, [req.params.usuarioId]);
+        return res.json(ventas);
+    } catch (error) {
+        console.error('Error al consultar el historial de compras:', error);
+        return res.status(500).json({ error: 'No fue posible obtener el historial de compras.' });
+    }
 };
